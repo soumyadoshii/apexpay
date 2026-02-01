@@ -36,13 +36,14 @@ const historicalSimulations: SimulationResult[] = [
 ];
 
 export function ShadowMode() {
+  const [changeType, setChangeType] = useState("Switch Payment Provider");
   const [selectedProvider, setSelectedProvider] = useState("");
   const [simulationResult, setSimulationResult] = useState<{
     fees: string;
     processing: string;
   } | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
-  const [expandedHistory, setExpandedHistory] = useState(false);
+  const [expandedHistory, setExpandedHistory] = useState(true); // Default open for demo
   const [history, setHistory] = useState(historicalSimulations);
 
   const providers = ["Stripe", "HDFC", "SBI", "Razorpay", "PayU"];
@@ -52,22 +53,42 @@ export function ShadowMode() {
     setIsSimulating(true);
     setSimulationResult(null);
 
+    // --- HARDCODED LOGIC FOR DEMO ---
     setTimeout(() => {
-      const feeChange = (Math.random() * 3 - 1).toFixed(1);
-      const processingChange = (Math.random() * 5 - 1).toFixed(1);
+        let feeText = "";
+        let processText = "";
+
+        // Specific Logic for HDFC Traffic Allocation Demo
+        if (selectedProvider === "HDFC" && changeType === "Adjust Traffic Allocation") {
+             feeText = "+0.5% fees (Tier 2 Routing)";
+             processText = "-120ms latency (Optimized)";
+        } 
+        // Logic for Switch Provider
+        else if (changeType === "Switch Payment Provider") {
+            feeText = "+1.2% fees (Interchange)";
+            processText = "99.99% Reliability Score";
+        }
+        // Random fallback for others
+        else {
+             const feeChange = (Math.random() * 3 - 1).toFixed(1);
+             const processingChange = (Math.random() * 5 - 1).toFixed(1);
+             feeText = `${Number(feeChange) >= 0 ? "+" : ""}${feeChange}% fees`;
+             processText = `${Number(processingChange) >= 0 ? "+" : ""}${processingChange}% speed`;
+        }
+
       setSimulationResult({
-        fees: `${Number(feeChange) >= 0 ? "+" : ""}${feeChange}% fees`,
-        processing: `${Number(processingChange) >= 0 ? "+" : ""}${processingChange}% processing speed`,
+        fees: feeText,
+        processing: processText,
       });
       setIsSimulating(false);
-    }, 2000);
+    }, 1500); // 1.5s delay for effect
   };
 
   const handleDecision = (proceed: boolean) => {
     if (simulationResult) {
       const newSimulation: SimulationResult = {
         id: Date.now().toString(),
-        change: `Switch to ${selectedProvider}`,
+        change: `${changeType}: ${selectedProvider}`,
         predictedOutcome: `${simulationResult.fees}, ${simulationResult.processing}`,
         timestamp: new Date().toLocaleString("en-US", {
           month: "short",
@@ -81,7 +102,7 @@ export function ShadowMode() {
       setHistory([newSimulation, ...history]);
     }
     setSimulationResult(null);
-    setSelectedProvider("");
+    // We do NOT clear selection so you can run it again if needed
   };
 
   return (
@@ -102,7 +123,11 @@ export function ShadowMode() {
             <label className="mb-2 block text-sm font-medium text-foreground">
               Select Change Type
             </label>
-            <select className="w-full border border-border bg-background px-4 py-2 text-sm text-foreground focus:border-primary focus:outline-none">
+            <select 
+                value={changeType}
+                onChange={(e) => setChangeType(e.target.value)}
+                className="w-full border border-border bg-background px-4 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+            >
               <option>Switch Payment Provider</option>
               <option>Adjust Traffic Allocation</option>
               <option>Enable/Disable Route</option>
@@ -137,24 +162,34 @@ export function ShadowMode() {
         </button>
 
         {simulationResult && (
-          <div className="mt-6 border border-border bg-muted p-4">
+          <div className="mt-6 border border-border bg-muted p-4 animate-in fade-in slide-in-from-top-2">
             <h4 className="mb-2 text-sm font-semibold text-foreground">
-              Simulation Results
+              Simulation Results (Predicted)
             </h4>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+                 <div className="p-3 bg-background border border-border rounded">
+                    <div className="text-xs text-muted-foreground uppercase">Financial Impact</div>
+                    <div className="text-lg font-bold text-foreground">{simulationResult.fees}</div>
+                 </div>
+                 <div className="p-3 bg-background border border-border rounded">
+                    <div className="text-xs text-muted-foreground uppercase">Performance Impact</div>
+                    <div className="text-lg font-bold text-foreground">{simulationResult.processing}</div>
+                 </div>
+            </div>
+            
             <p className="mb-4 text-sm text-foreground">
-              Predicted outcome: {simulationResult.fees},{" "}
-              {simulationResult.processing}. Proceed?
+              Do you want to apply this configuration to Live Production?
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => handleDecision(true)}
-                className="bg-success px-4 py-2 text-sm font-medium text-success-foreground"
+                className="bg-success hover:bg-success/90 px-4 py-2 text-sm font-medium text-success-foreground transition-colors rounded-sm"
               >
                 Yes, Apply
               </button>
               <button
                 onClick={() => handleDecision(false)}
-                className="border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                className="border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors rounded-sm"
               >
                 No, Cancel
               </button>
@@ -166,7 +201,7 @@ export function ShadowMode() {
       <div className="border border-border bg-card">
         <button
           onClick={() => setExpandedHistory(!expandedHistory)}
-          className="flex w-full items-center justify-between px-6 py-4 text-left"
+          className="flex w-full items-center justify-between px-6 py-4 text-left hover:bg-muted/50 transition-colors"
         >
           <span className="text-base font-medium text-foreground">
             Historical Simulations
@@ -181,7 +216,7 @@ export function ShadowMode() {
             {history.map((sim) => (
               <div
                 key={sim.id}
-                className="flex items-center justify-between border-b border-border px-6 py-4 last:border-b-0"
+                className="flex items-center justify-between border-b border-border px-6 py-4 last:border-b-0 hover:bg-muted/20"
               >
                 <div>
                   <p className="text-sm font-medium text-foreground">
@@ -192,16 +227,16 @@ export function ShadowMode() {
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="text-xs text-muted-foreground">
-                    {sim.timestamp}
+                  <span className="text-xs text-muted-foreground font-mono">
+                    {sim.timestamp.split(',')[1]} 
                   </span>
                   {sim.accepted === true && (
-                    <span className="bg-success px-2 py-1 text-xs font-medium text-success-foreground">
+                    <span className="bg-success/20 text-success border border-success/30 px-2 py-1 text-xs font-bold uppercase rounded">
                       Accepted
                     </span>
                   )}
                   {sim.accepted === false && (
-                    <span className="bg-destructive px-2 py-1 text-xs font-medium text-destructive-foreground">
+                    <span className="bg-destructive/20 text-destructive border border-destructive/30 px-2 py-1 text-xs font-bold uppercase rounded">
                       Rejected
                     </span>
                   )}
